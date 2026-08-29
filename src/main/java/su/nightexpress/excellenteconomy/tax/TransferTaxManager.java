@@ -368,7 +368,7 @@ public class TransferTaxManager extends AbstractManager<EconomyPlugin> {
             return false;
         }
 
-        this.currencyManager.logTransfer(sender, currency, targetUser, transfer);
+        this.currencyManager.logTransfer(sender, fromUser, currency, targetUser, transfer);
 
         return true;
     }

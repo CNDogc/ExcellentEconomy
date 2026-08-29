@@ -773,10 +773,13 @@ public class CurrencyManager extends AbstractManager<EconomyPlugin> {
      *
      * <p>Exposed for {@link TransferTaxManager} because the logger is owned by this class.
      */
-    public void logTransfer(@NonNull Player sender, @NonNull ExcellentCurrency currency,
+    public void logTransfer(@NonNull Player sender, @NonNull CoinsUser fromUser, @NonNull ExcellentCurrency currency,
                             @NonNull CoinsUser targetUser, @NonNull PendingTransfer transfer) {
         if (this.logger == null) return;
 
+        // Reads the balances off the very objects that were just debited and credited, rather
+        // than re-resolving the sender: a cache miss there would reload from the database and
+        // could log the pre-transfer balance, since markDirty() does not flush immediately.
         this.logger.addEntry(OperationContext.of(sender), "[%s] %s paid %s to %s. Tax %s (%s), total %s. New balances: %s and %s."
             .formatted(
                 currency.getId(),
@@ -786,7 +789,7 @@ public class CurrencyManager extends AbstractManager<EconomyPlugin> {
                 currency.format(transfer.tax()),
                 TaxRates.formatPercent(transfer.rate()),
                 currency.format(transfer.total()),
-                currency.format(this.userManager.getOrFetch(sender).getBalance(currency)),
+                currency.format(fromUser.getBalance(currency)),
                 currency.format(targetUser.getBalance(currency))
             ));
     }
