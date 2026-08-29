@@ -95,6 +95,7 @@ public final class PlaceholderContractSample {
 
         clampAndCombination();
         roundingModes();
+        configHardening();
         balanceEditInvariants();
 
         System.out.println();
@@ -281,6 +282,95 @@ public final class PlaceholderContractSample {
 
         // Decimal currency, rounding down: 33.33 * 0.05 = 1.6665 -> 1.66.
         checkAmount(noFloor, "Steve", player("Steve"), MYSTERY_COINS, 33.33, "1.66");
+        System.out.println();
+    }
+
+    /**
+     * Server owners hand-edit tax.yml. A bad value must degrade to something sane rather than
+     * produce a negative rate, a NaN placeholder or a crash on reload.
+     */
+    private static void configHardening() {
+        System.out.println("--- malformed tax.yml values ---");
+
+        Map<String, Double> balances = Map.of("Steve", 500D);
+
+        // Negative numbers in the config are clamped to zero, never applied as-is.
+        Fixture negative = fixtureFromString("negative", """
+            Enabled: true
+            Base_Rate: -5
+            Fixed_Amount: -100
+            Min_Tax_Amount: -50
+            Max_Rate: -1
+            Rounding: UP
+            Combination: MAX
+            """, balances);
+
+        expect("Base_Rate clamped to 0", negative.config().getBaseRate(), "0.0");
+        expect("Fixed_Amount clamped to 0", negative.config().getFixedAmount(), "0.0");
+        expect("Min_Tax_Amount clamped to 0", negative.config().getMinTaxAmount(), "0.0");
+        check(negative, "negative config -> no tax", player("Steve"), COINS, "0");
+
+        // Unrecognised enum values fall back instead of throwing on reload.
+        Fixture junkEnums = fixtureFromString("junk-enums", """
+            Enabled: true
+            Base_Rate: 0.05
+            Min_Tax_Amount: 0
+            Max_Rate: 0.5
+            Rounding: SIDEWAYS
+            Combination: MULTIPLY
+            """, balances);
+
+        expect("Rounding falls back to UP", String.valueOf(junkEnums.config().getRounding()), "UP");
+        expect("Combination falls back to MAX", String.valueOf(junkEnums.config().getCombination()), "MAX");
+        checkAmount(junkEnums, "Steve", player("Steve"), COINS, 1000, "50");
+
+        // A tier with a negative threshold or rate is skipped, not applied.
+        Fixture badTier = fixtureFromString("bad-tier", """
+            Enabled: true
+            Base_Rate: 0.05
+            Min_Tax_Amount: 0
+            Max_Rate: 0.5
+            Rounding: UP
+            Combination: MAX
+            Permission_Tiers:
+              0:
+                permission: ""
+                rate: 0.02
+            Wealth_Tiers:
+              0:
+                min_balance: -1
+                rate: 0.99
+            """, balances);
+
+        expect("blank permission tier skipped", String.valueOf(badTier.config().getPermissionTiers().size()), "0");
+        expect("negative wealth tier skipped", String.valueOf(badTier.config().getWealthTiers().size()), "0");
+        check(badTier, "bad tiers -> base rate", player("Steve"), COINS, "0.05");
+
+        // A zero ceiling means "no tax", which is a legitimate way to disable it.
+        Fixture zeroCeiling = fixtureFromString("zero-ceiling", """
+            Enabled: true
+            Base_Rate: 0.05
+            Min_Tax_Amount: 0
+            Max_Rate: 0
+            Rounding: UP
+            Combination: MAX
+            """, balances);
+
+        check(zeroCeiling, "Max_Rate 0 -> no tax", player("Steve"), COINS, "0");
+        checkAmount(zeroCeiling, "Steve", player("Steve"), COINS, 1000, "0");
+
+        // Master switch off: placeholders must report zero, since /pay skips tax entirely.
+        Fixture disabled = fixtureFromString("disabled", """
+            Enabled: false
+            Base_Rate: 0.05
+            Min_Tax_Amount: 1
+            Max_Rate: 0.5
+            Rounding: UP
+            Combination: MAX
+            """, balances);
+
+        check(disabled, "Enabled false -> rate 0", player("Steve"), COINS, "0");
+        checkAmount(disabled, "Steve", player("Steve"), COINS, 1000, "0");
         System.out.println();
     }
 

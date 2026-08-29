@@ -7,8 +7,9 @@ import java.util.UUID;
 /**
  * A staged transfer waiting to be confirmed.
  *
- * <p>Held in memory only: a server restart discards every pending transfer, which is
- * intentional and communicated to the player.
+ * <p>Held in memory only: a restart silently discards every pending transfer. That is safe
+ * because no money has moved yet - the sender simply gets "no pending transfer" if they try to
+ * confirm afterwards - but it is not announced to the player, so the transfer just vanishes.
  */
 public record PendingTransfer(
     UUID senderId,
