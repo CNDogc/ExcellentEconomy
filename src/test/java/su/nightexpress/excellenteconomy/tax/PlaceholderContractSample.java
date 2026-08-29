@@ -96,6 +96,7 @@ public final class PlaceholderContractSample {
         clampAndCombination();
         roundingModes();
         configHardening();
+        nonFiniteAmounts(sample);
         balanceEditInvariants();
 
         System.out.println();
@@ -375,6 +376,40 @@ public final class PlaceholderContractSample {
     }
 
     /**
+     * NaN and Infinity both compare false against {@code <= 0}, so a plain positivity check
+     * waves them through. {@code TaxRates#calculate} collapses them into a zero-amount
+     * breakdown, which is why {@code TransferTaxManager#startTransfer} has to reject them with
+     * {@code Double.isFinite} before any pending transfer is staged.
+     */
+    private static void nonFiniteAmounts(@NonNull Fixture fixture) {
+        System.out.println("--- non-finite amounts ---");
+
+        Player steve = player("Steve");
+        ExcellentCurrency coins = fixture.registry().getById(COINS);
+
+        for (double amount : new double[]{Double.NaN, Double.POSITIVE_INFINITY, Double.NEGATIVE_INFINITY}) {
+            TaxBreakdown breakdown = fixture.rates().calculate(steve, coins, amount);
+
+            expect("amount " + amount + " -> zero principal", breakdown.amount(), "0.0");
+            expect("amount " + amount + " -> zero total", breakdown.total(), "0.0");
+            expectTrue("amount " + amount + " -> no tax", !breakdown.hasTax());
+        }
+
+        // And the degenerate input never escapes as a non-finite number either way.
+        for (double amount : new double[]{Double.NaN, Double.POSITIVE_INFINITY, -1D, 0D}) {
+            TaxBreakdown breakdown = fixture.rates().calculate(steve, coins, amount);
+            expectTrue("total stays finite for " + amount, Double.isFinite(breakdown.total()));
+        }
+
+        // The placeholder path rejects them too: parseAmount refuses anything non-finite.
+        checkRaw(fixture, "NaN payload", steve,
+            TransferTaxPlaceholders.TRANSFER_TAX_AMOUNT + "_" + COINS + "_NaN", "0");
+        checkRaw(fixture, "Infinity payload", steve,
+            TransferTaxPlaceholders.TRANSFER_TAX_AMOUNT + "_" + COINS + "_Infinity", "0");
+        System.out.println();
+    }
+
+    /**
      * Pins the invariants {@code TransferTaxManager#execute} relies on to decide whether a
      * balance change was vetoed. That method tests {@code balance == before} rather than
      * {@code >=} / {@code <=}, which is only sound if a cancelled {@link ChangeBalanceEvent}
@@ -482,7 +517,7 @@ public final class PlaceholderContractSample {
     // Fixtures
     // ---------------------------------------------------------------------------------
 
-    private record Fixture(String name, TaxConfig config, CurrencyRegistry registry,
+    private record Fixture(String name, TaxConfig config, TaxRates rates, CurrencyRegistry registry,
                            PlaceholderRegistry placeholders) {
 
         @NonNull
@@ -531,10 +566,12 @@ public final class PlaceholderContractSample {
         Function<Player, CoinsUser> lookup = player -> user(player.getName(),
             balances.getOrDefault(player.getName(), 0D), registry);
 
-        PlaceholderRegistry placeholders = new PlaceholderRegistry();
-        new TransferTaxPlaceholders(registry, new TaxRates(config, lookup)).addPlaceholders(placeholders);
+        TaxRates rates = new TaxRates(config, lookup);
 
-        return new Fixture(name, config, registry, placeholders);
+        PlaceholderRegistry placeholders = new PlaceholderRegistry();
+        new TransferTaxPlaceholders(registry, rates).addPlaceholders(placeholders);
+
+        return new Fixture(name, config, rates, registry, placeholders);
     }
 
     @NonNull

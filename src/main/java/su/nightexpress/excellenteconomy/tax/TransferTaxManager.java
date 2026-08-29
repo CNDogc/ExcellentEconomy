@@ -160,7 +160,11 @@ public class TransferTaxManager extends AbstractManager<EconomyPlugin> {
         }
 
         double amount = currency.floorIfNeeded(rawAmount);
-        if (amount <= 0D) return false;
+
+        // isFinite, not just "> 0": NaN and Infinity both compare false against `<= 0`, so a
+        // plain check lets them through. calculate() would then collapse them to a zero-amount
+        // breakdown, staging a bogus "Amount: 0 / Total: 0" confirmation box.
+        if (!Double.isFinite(amount) || amount <= 0D) return false;
 
         double minAmount = currency.getMinTransferAmount();
         if (minAmount > 0D && amount < minAmount) {

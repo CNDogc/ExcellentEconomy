@@ -144,7 +144,7 @@ The tax math is isolated behind `TaxRates` and has no dependency on a running se
 (If the wrapper can't reach `services.gradle.org`, point it at a local Gradle instead:
 `gradle printPlaceholderSamples`.)
 
-This is a **regression check, not a demo**. It loads `samples/tax.yml`, runs the real `TaxRates` code and asserts all 60 values against expectations — a change to the tax math turns the build red, exit code 1.
+This is a **regression check, not a demo**. It loads `samples/tax.yml`, runs the real `TaxRates` code and asserts all 75 values against expectations — a change to the tax math turns the build red, exit code 1.
 
 ```
 --- transfer_tax_rate ---
@@ -161,7 +161,7 @@ PASS   Rich  (permission wins)      transfer_tax_rate_coins          -> "0.3"   
 OK - 24 checks passed.
 ```
 
-Covered: base rate, both tier systems, exempt permission, `null` player fallback, decimal vs whole-number currencies, both rounding modes, the `Min_Tax_Amount` floor, `Max_Rate` clamping under `ADD`, all four `Combination` modes, malformed payloads (unknown currency, non-numeric, negative and zero amounts, missing separator), the `ChangeBalanceEvent` invariants the money-movement code depends on, a drift guard asserting every `writeDefaults` value still matches `samples/tax.yml`, and config hardening (negative numbers clamped, unknown enum values falling back, malformed tiers skipped).
+Covered: base rate, both tier systems, exempt permission, `null` player fallback, decimal vs whole-number currencies, both rounding modes, the `Min_Tax_Amount` floor, `Max_Rate` clamping under `ADD`, all four `Combination` modes, malformed payloads (unknown currency, non-numeric, negative and zero amounts, missing separator), the `ChangeBalanceEvent` invariants the money-movement code depends on, a drift guard asserting every `writeDefaults` value still matches `samples/tax.yml`, config hardening (negative numbers clamped, unknown enum values falling back, malformed tiers skipped), and non-finite amounts (NaN and Infinity collapsing to a zero-amount breakdown rather than leaking a non-finite number downstream).
 
 `getRate` and `calculate` are the *only* places rates and amounts are computed — both `/confirm` and the placeholders route through them, which is what guarantees the number shown in a menu always matches the number actually deducted.
 
