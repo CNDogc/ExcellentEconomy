@@ -46,6 +46,8 @@ Command:
       Done:
         Sender: "<gray>你已向 <green>%player_name% <gray>转账 <gold>%amount% <gray>!"
         Notify: "<gray>你收到 <green>%player_name% <gray>转账的 <gold>%amount% <gray>!"
+  Confirm:
+    Desc: 确认待处理的转账
     Payments:
       Desc: 切换是否接受其他玩家转账
       Toggle: "<aqua>%currency_name% <gray>收款状态: <aqua>%state%"
@@ -64,6 +66,33 @@ Command:
         - "%previous_page%  <gray>页码 <yellow>%current% <dark_gray>/ <yellow>%max%  %next_page%"
         - "<dark_gray>--------------------------------"
       Entry: "<yellow>#%pos% <green>%player_name% <dark_gray>▪ <gold>%balance%"
+Tax:
+  Confirm:
+    Details:
+      - <noprefix>
+      - "<dark_gray>--------------------------------"
+      - "<gray>[<green>$<gray>] 转账确认:"
+      - " "
+      - "<gray>收款人: <white>%player_name%"
+      - "<gray>转账金额: <gold>%amount%"
+      - "<gray>税率: <gold>%rate%"
+      - "<gray>税费: <red>%tax%"
+      - "<gray>实付合计: <gold>%total%"
+      - " "
+      - "<gray>输入 <gold>%value% <gray>以完成本次转账。"
+      - "<dark_gray>--------------------------------"
+    Done:
+      Sender: "<gray>你已向 <green>%player_name% <gray>转账 <gold>%amount% <gray>!"
+      Tax: "<gray>已支付税费 <red>%tax% <dark_gray>(<gold>%rate%<dark_gray>)<gray>，合计 <gold>%total%<gray>。"
+      Notify: "<gray>你收到 <green>%player_name% <gray>转账的 <gold>%amount% <gray>!"
+    Error:
+      None: "<gray>你没有待确认的转账。"
+      Expired: "<gray>待确认的转账已超时，请重新发起。"
+      NotEnough: "<gray>你的 <aqua>%currency_name% <gray>不足，无法支付 <red>%total%<gray>!"
+      RateChanged: "<gray>税率已变动，请重新发起转账。"
+      NoPayments: "<green>%player_name% <red>不接受 <aqua>%currency_name% <red>转账!"
+      TargetInvalid: "<gray>该玩家当前不可用。"
+      Blocked: "<gray>转账被其他插件取消，未扣除任何费用。"
 Migration:
   Start:
     Blocked: "<red>后台任务运行中，无法开始迁移!"

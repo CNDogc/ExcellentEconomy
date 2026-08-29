@@ -243,6 +243,70 @@ public class Lang implements LangContainer {
                 CommonPlaceholders.PLAYER_NAME) + "."));
 
 
+    public static final TextLocale COMMAND_CONFIRM_DESC = LangEntry.builder("Command.Confirm.Desc").text(
+        "Confirm pending currency transfer.");
+
+    public static final MessageLocale TAX_CONFIRM_DETAILS = LangEntry.builder("Tax.Confirm.Details").message(
+        MessageData.CHAT_NO_PREFIX,
+        DARK_GRAY.wrap(STRIKETHROUGH.wrap("-".repeat(32))),
+        GRAY.wrap("[" + GREEN.wrap("$") + "] Transfer Confirmation:"),
+        " ",
+        GRAY.wrap("To: " + WHITE.wrap(CommonPlaceholders.PLAYER_NAME)),
+        GRAY.wrap("Amount: " + SOFT_YELLOW.wrap(GENERIC_AMOUNT)),
+        GRAY.wrap("Tax Rate: " + SOFT_YELLOW.wrap(GENERIC_RATE)),
+        GRAY.wrap("Tax: " + SOFT_RED.wrap(GENERIC_TAX)),
+        GRAY.wrap("Total: " + SOFT_YELLOW.wrap(GENERIC_TOTAL)),
+        " ",
+        GRAY.wrap("Type " + SOFT_YELLOW.wrap(CommonPlaceholders.GENERIC_VALUE) + " to complete this transfer."),
+        DARK_GRAY.wrap(STRIKETHROUGH.wrap("-".repeat(32)))
+    );
+
+    public static final MessageLocale TAX_CONFIRM_DONE_SENDER = LangEntry.builder("Tax.Confirm.Done.Sender")
+        .chatMessage(
+            GRAY.wrap("You sent " + SOFT_YELLOW.wrap(GENERIC_AMOUNT) + " to " + SOFT_YELLOW.wrap(
+                CommonPlaceholders.PLAYER_NAME) + "!"));
+
+    public static final MessageLocale TAX_CONFIRM_DONE_TAX = LangEntry.builder("Tax.Confirm.Done.Tax").chatMessage(
+        GRAY.wrap("Tax " + SOFT_RED.wrap(GENERIC_TAX) + DARK_GRAY.wrap(" (" + GENERIC_RATE + ")") +
+            " paid. Total: " + SOFT_YELLOW.wrap(GENERIC_TOTAL) + "."));
+
+    public static final MessageLocale TAX_CONFIRM_NOTIFY = LangEntry.builder("Tax.Confirm.Done.Notify").chatMessage(
+        GRAY.wrap("You received " + SOFT_YELLOW.wrap(GENERIC_AMOUNT) + " from " + SOFT_YELLOW.wrap(
+            CommonPlaceholders.PLAYER_NAME) + "."));
+
+    public static final MessageLocale TAX_CONFIRM_ERROR_NONE = LangEntry.builder("Tax.Confirm.Error.None")
+        .chatMessage(GRAY.wrap("You have no pending transfer to confirm."));
+
+    public static final MessageLocale TAX_CONFIRM_ERROR_EXPIRED = LangEntry.builder("Tax.Confirm.Error.Expired")
+        .chatMessage(GRAY.wrap("Your pending transfer has expired. Please send it again."));
+
+    public static final MessageLocale TAX_CONFIRM_ERROR_NOT_ENOUGH = LangEntry.builder("Tax.Confirm.Error.NotEnough")
+        .chatMessage(
+            GRAY.wrap("You don't have enough " + SOFT_RED.wrap(CURRENCY_NAME) + " to pay " + SOFT_RED.wrap(
+                GENERIC_TOTAL) + "!"));
+
+    public static final MessageLocale TAX_CONFIRM_ERROR_RATE_CHANGED = LangEntry.builder(
+        "Tax.Confirm.Error.RateChanged").chatMessage(
+        GRAY.wrap("Your transfer tax has changed. Please send the transfer again."));
+
+    public static final MessageLocale TAX_CONFIRM_ERROR_NO_PAYMENTS = LangEntry.builder(
+        "Tax.Confirm.Error.NoPayments").chatMessage(
+        GRAY.wrap(SOFT_RED.wrap(CommonPlaceholders.PLAYER_NAME) + " does not accept " + SOFT_RED.wrap(
+            CURRENCY_NAME) + "!"));
+
+    public static final MessageLocale TAX_CONFIRM_ERROR_TARGET_INVALID = LangEntry.builder(
+        "Tax.Confirm.Error.TargetInvalid").chatMessage(
+        GRAY.wrap("That player is no longer available."));
+
+    public static final MessageLocale TAX_CONFIRM_ERROR_BLOCKED = LangEntry.builder("Tax.Confirm.Error.Blocked")
+        .chatMessage(
+            GRAY.wrap("The transfer was cancelled by another plugin. Nothing was charged."));
+
+    public static final MessageLocale TAX_CONFIRM_ERROR_TARGET_LOADING = LangEntry.builder(
+        "Tax.Confirm.Error.TargetLoading").chatMessage(
+        GRAY.wrap("Still loading that player's data, please try again in a moment."));
+
+
     public static final MessageLocale COMMAND_CURRENCY_PAYMENTS_TOGGLE = LangEntry.builder(
         "Command.Currency.Payments.Toggle").chatMessage(
             GRAY.wrap(SOFT_YELLOW.wrap(CURRENCY_NAME) + " payments acception: " + SOFT_YELLOW.wrap(GENERIC_STATE) +

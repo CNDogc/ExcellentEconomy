@@ -19,6 +19,10 @@ public class EconomyPlaceholders {
     public static final String GENERIC_NEXT_PAGE     = "%next_page%";
     public static final String GENERIC_PREVIOUS_PAGE = "%previous_page%";
 
+    public static final String GENERIC_RATE  = "%rate%";
+    public static final String GENERIC_TAX   = "%tax%";
+    public static final String GENERIC_TOTAL = "%total%";
+
     public static final String CURRENCY_ID     = "%currency_id%";
     public static final String CURRENCY_NAME   = "%currency_name%";
     public static final String CURRENCY_SYMBOL = "%currency_symbol%";

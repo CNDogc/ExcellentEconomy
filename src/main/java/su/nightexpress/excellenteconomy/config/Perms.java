@@ -40,6 +40,15 @@ public class Perms {
     public static final UniPermission COMMAND_CURRENCY_TAKE            = new UniPermission(PREFIX_COMMAND +
         "currency.take");
 
+    /**
+     * MUST stay {@link PermissionDefault#TRUE}: downstream plugins (e.g. MenuWallet) dispatch
+     * this command as the player. Defaulting to anything else would break every UI transfer.
+     */
+    public static final UniPermission COMMAND_CONFIRM = new UniPermission(PREFIX_COMMAND + "confirm",
+        PermissionDefault.TRUE);
+
+    public static final UniPermission TAX_EXEMPT = new UniPermission(PREFIX + "tax.exempt", PermissionDefault.FALSE);
+
     public static final UniPermission COMMAND_RELOAD        = new UniPermission(PREFIX_COMMAND + "reload");
     public static final UniPermission COMMAND_CREATE        = new UniPermission(PREFIX_COMMAND + "create");
     public static final UniPermission COMMAND_RESET         = new UniPermission(PREFIX_COMMAND + "reset");
@@ -52,10 +61,12 @@ public class Perms {
         PLUGIN.addChildren(
             COMMAND,
             CURRENCY,
-            HIDE_FROM_TOPS
+            HIDE_FROM_TOPS,
+            TAX_EXEMPT
         );
 
         COMMAND.addChildren(
+            COMMAND_CONFIRM,
             COMMAND_RELOAD,
             COMMAND_CREATE,
             COMMAND_RESET,

@@ -24,6 +24,7 @@ To upgrade from CoinsEngine, see [This Guide](https://nightexpressdev.com/excell
 - **Operation Logs** – Stay in the loop. Every single transaction is tracked in the console or a dedicated log file so nothing goes missing.
 - **Wallet** – Check all your different balances at once with a single, easy command.
 - **PlaceholderAPI Support** – Loaded with built-in placeholders, making it easy to display player/server stats anywhere on your server.
+- **Transfer Tax** – Charge a fee on player-to-player transfers, with permission tiers, wealth brackets, and a confirm step. See [Transfer Tax](#-transfer-tax).
 - **Developer API** – Use API to hook into the system and integrate it with your plugins.
 
 ---
@@ -67,6 +68,102 @@ The following versions and platforms are supported:
 
 **Optional Plugins:**
 - [PlaceholderAPI](https://spigotmc.org/resources/6245/) - For global placeholders to use in other plugins.
+
+## 💸 Transfer Tax
+
+Charge a fee on player-to-player transfers. The payer covers it: they are charged `amount + tax`, the receiver gets exactly `amount`, and the tax itself is destroyed — a deflationary sink.
+
+**Scope:** only the `/pay` command is taxed. Admin operations (`/eco give|take|set`), Vault API calls, shop plugins and quest rewards are **not** touched.
+
+### Setup
+
+`plugins/ExcellentEconomy/tax.yml` is generated on first start and re-read by `/excellenteconomy reload`. All knobs:
+
+| Key | Default | Meaning |
+| :--- | :--- | :--- |
+| `Enabled` | `true` | Master switch. When `false`, `/pay` transfers instantly with no tax and no confirmation — identical to stock behaviour. |
+| `Base_Rate` | `0.05` | Rate when no tier matches. Plain decimal, `0.05` = 5%. |
+| `Fixed_Amount` | `0` | Flat amount added on top of the percentage, before rounding. |
+| `Min_Tax_Amount` | `1` | Floor for whole-number currencies, so tiny transfers can't round to a tax-free loophole. |
+| `Max_Rate` | `0.5` | Hard ceiling applied **after** tiers combine — stops a misconfigured `ADD` from stacking past 100%. |
+| `Rounding` | `UP` | `UP` rounds away from zero, `DOWN` towards it. Decimal currencies round to 2 places either way. |
+| `Combination` | `MAX` | How a permission tier and a wealth tier merge: `MAX`, `MIN`, `ADD`, `FIRST_MATCH`. |
+| `Confirm_Timeout_Seconds` | `60` | How long a pending transfer stays valid. |
+| `Confirm_Command_Aliases` | `confirm` | Comma separated. The first alias is the one shown to players. |
+
+Two tier systems, both optional:
+
+```yaml
+Permission_Tiers:        # player keeps the LOWEST rate among every tier they hold
+  0:
+    permission: excellenteconomy.tax.rate.vip
+    rate: 0.02
+  1:
+    permission: excellenteconomy.tax.rate.member
+    rate: 0.03
+
+Wealth_Tiers:            # matched highest bracket first; file order does not matter
+  0:
+    min_balance: 1000000
+    rate: 0.10
+  1:
+    min_balance: 100000
+    rate: 0.07
+```
+
+> Permission tiers are a **list, not a mapping**. Permission nodes contain dots, and a dotted YAML key would be parsed as a nested path.
+
+### Permissions
+
+| Node | Default | Effect |
+| :--- | :--- | :--- |
+| `excellenteconomy.command.confirm` | `TRUE` | Run the confirm command. **Must stay `TRUE`** — downstream plugins dispatch it *as the player*. |
+| `excellenteconomy.tax.exempt` | `FALSE` | Pay no transfer tax at all. |
+
+### Placeholders
+
+Two placeholders, consumed by downstream plugins (e.g. MenuWallet). **These are a hard cross-plugin contract** — the names and the return format will stay backwards compatible. If a different format is ever needed, a *new* placeholder gets registered and these keep working.
+
+| Placeholder | Example output |
+| :--- | :--- |
+| `%excellenteconomy_transfer_tax_rate_<currencyId>%` | `0.05` |
+| `%excellenteconomy_transfer_tax_amount_<currencyId>_<amount>%` | `50` |
+
+Both guarantee: plain decimal string, never `null`, never empty, no colour codes, no percent sign, no scientific notation, and resolvable with a `null` player (falls back to the base rate).
+
+The amount form splits its payload on the **last** underscore, because currency ids may legally contain underscores (`mystery_coins`) while an amount never does.
+
+### Verifying tax math without a server
+
+The tax math is isolated behind `TaxRates` and has no dependency on a running server, so it can be exercised directly:
+
+```
+./gradlew printPlaceholderSamples
+```
+
+(If the wrapper can't reach `services.gradle.org`, point it at a local Gradle instead:
+`gradle printPlaceholderSamples`.)
+
+This is a **regression check, not a demo**. It loads `samples/tax.yml`, runs the real `TaxRates` code and asserts all 46 values against expectations — a change to the tax math turns the build red, exit code 1.
+
+```
+--- transfer_tax_rate ---
+PASS   Steve (no tiers)             transfer_tax_rate_coins          -> "0.05"   want "0.05"
+PASS   Rich  (wealth tier)          transfer_tax_rate_coins          -> "0.07"   want "0.07"
+PASS   Vip   (exempt)               transfer_tax_rate_coins          -> "0"      want "0"
+PASS   null  (no player context)    transfer_tax_rate_coins          -> "0.05"   want "0.05"
+
+--- Combination=ADD and Max_Rate clamping ---
+PASS   Rich  (0.30 + 0.40, clamped) transfer_tax_rate_coins          -> "0.5"    want "0.5"
+PASS   Rich  (0.30 + 0.40, no clamp) transfer_tax_rate_coins         -> "0.7"    want "0.7"
+PASS   Rich  (permission wins)      transfer_tax_rate_coins          -> "0.3"    want "0.3"
+
+OK - 24 checks passed.
+```
+
+Covered: base rate, both tier systems, exempt permission, `null` player fallback, decimal vs whole-number currencies, both rounding modes, the `Min_Tax_Amount` floor, `Max_Rate` clamping under `ADD`, all four `Combination` modes, malformed payloads (unknown currency, non-numeric, negative and zero amounts, missing separator), the `ChangeBalanceEvent` invariants the money-movement code depends on, and a drift guard asserting every `writeDefaults` value still matches `samples/tax.yml`.
+
+`getRate` and `calculate` are the *only* places rates and amounts are computed — both `/confirm` and the placeholders route through them, which is what guarantees the number shown in a menu always matches the number actually deducted.
 
 ## ❤️ Donate
 

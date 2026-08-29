@@ -1,5 +1,6 @@
 package su.nightexpress.excellenteconomy.currency.command;
 
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.jspecify.annotations.NonNull;
 import su.nightexpress.excellenteconomy.api.currency.ExcellentCurrency;
@@ -8,6 +9,7 @@ import su.nightexpress.excellenteconomy.command.currency.CurrencyCommand;
 import su.nightexpress.excellenteconomy.config.Lang;
 import su.nightexpress.excellenteconomy.config.Perms;
 import su.nightexpress.excellenteconomy.currency.CurrencyManager;
+import su.nightexpress.excellenteconomy.tax.TransferTaxManager;
 import su.nightexpress.excellenteconomy.user.CoinsUser;
 import su.nightexpress.excellenteconomy.user.UserManager;
 import su.nightexpress.nightcore.commands.Arguments;
@@ -50,6 +52,38 @@ public class PayCommand implements CurrencyCommand {
         String targetName = arguments.getString(CommandArguments.PLAYER);
         double amount = arguments.getDouble(CommandArguments.AMOUNT);
 
+        TransferTaxManager taxManager = this.manager.getTaxManager();
+        if (!taxManager.isEnabled()) {
+            this.payDirect(context, sender, targetName, currency, amount);
+            return true;
+        }
+
+        // Online targets resolve right here, so the pending transfer exists before this command
+        // returns. Downstream plugins (MenuWallet) dispatch /confirm one tick after /pay and
+        // must never lose that race, which the async lookup below would otherwise cause.
+        Player targetPlayer = Bukkit.getPlayer(targetName);
+        if (targetPlayer != null) {
+            taxManager.startTransfer(sender, this.userManager.getOrFetch(targetPlayer), currency, amount);
+            return true;
+        }
+
+        // Offline target: the pending transfer lands a tick or two later. Only a human ever
+        // takes this branch, and they get told the tax before they can confirm anything.
+        this.userManager.loadByNameAsync(targetName).thenAccept(opt -> {
+            CoinsUser targetUser = opt.orElse(null);
+            if (targetUser == null) {
+                currency.sendPrefixed(CoreLang.ERROR_INVALID_PLAYER, context.getSender());
+                return;
+            }
+
+            taxManager.startTransfer(sender, targetUser, currency, amount);
+        });
+
+        return true;
+    }
+
+    private void payDirect(@NonNull CommandContext context, @NonNull Player sender, @NonNull String targetName,
+                           @NonNull ExcellentCurrency currency, double amount) {
         this.userManager.loadByNameAsync(targetName).thenAccept(opt -> {
             CoinsUser targetUser = opt.orElse(null);
             if (targetUser == null) {
@@ -59,6 +93,5 @@ public class PayCommand implements CurrencyCommand {
 
             this.manager.send(sender, targetUser, currency, amount);
         });
-        return true;
     }
 }

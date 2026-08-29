@@ -7,4 +7,5 @@ public class EconomyFiles {
 
     public static final String FILE_COMMANDS   = "commands.yml";
     public static final String FILE_OPERATIONS = "operations.log";
+    public static final String FILE_TAX        = "tax.yml";
 }

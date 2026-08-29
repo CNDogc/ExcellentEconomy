@@ -23,6 +23,9 @@ import su.nightexpress.excellenteconomy.currency.impl.AbstractCurrency;
 import su.nightexpress.excellenteconomy.currency.impl.NormalCurrency;
 import su.nightexpress.excellenteconomy.currency.placeholder.PlayerBalancePlaceholders;
 import su.nightexpress.excellenteconomy.data.DataColumns;
+import su.nightexpress.excellenteconomy.tax.PendingTransfer;
+import su.nightexpress.excellenteconomy.tax.TaxRates;
+import su.nightexpress.excellenteconomy.tax.TransferTaxManager;
 import su.nightexpress.excellenteconomy.data.DataHandler;
 import su.nightexpress.excellenteconomy.hook.HookPlugin;
 import su.nightexpress.excellenteconomy.user.CoinsUser;
@@ -56,8 +59,9 @@ public class CurrencyManager extends AbstractManager<EconomyPlugin> {
     private final DataHandler      dataHandler;
     private final UserManager      userManager;
 
-    private boolean        operationsAllowed;
-    private CurrencyLogger logger;
+    private boolean            operationsAllowed;
+    private CurrencyLogger     logger;
+    private TransferTaxManager taxManager;
 
     public CurrencyManager(@NonNull EconomyPlugin plugin,
                            @NonNull CurrencyRegistry registry,
@@ -76,6 +80,11 @@ public class CurrencyManager extends AbstractManager<EconomyPlugin> {
     protected void onLoad() {
         this.createDefaults();
         this.migrateSettings();
+
+        this.taxManager = new TransferTaxManager(this.plugin, this.registry, this.commandManager, this.userManager,
+            this);
+        this.taxManager.setup();
+
         this.loadPluginCommands();
         this.loadCurrencyCommands();
         this.plugin.addGlobalPlaceholders(new PlayerBalancePlaceholders(this.registry, this));
@@ -95,6 +104,7 @@ public class CurrencyManager extends AbstractManager<EconomyPlugin> {
     protected void onShutdown() {
         this.registry.getCurrencies().forEach(this::unregisterCurrency);
 
+        if (this.taxManager != null) this.taxManager.shutdown();
         if (this.logger != null) this.logger.shutdown();
         this.disableOperations();
     }
@@ -751,6 +761,34 @@ public class CurrencyManager extends AbstractManager<EconomyPlugin> {
         }
 
         return true;
+    }
+
+    @NonNull
+    public TransferTaxManager getTaxManager() {
+        return this.taxManager;
+    }
+
+    /**
+     * Records a confirmed, taxed transfer in the operations log.
+     *
+     * <p>Exposed for {@link TransferTaxManager} because the logger is owned by this class.
+     */
+    public void logTransfer(@NonNull Player sender, @NonNull ExcellentCurrency currency,
+                            @NonNull CoinsUser targetUser, @NonNull PendingTransfer transfer) {
+        if (this.logger == null) return;
+
+        this.logger.addEntry(OperationContext.of(sender), "[%s] %s paid %s to %s. Tax %s (%s), total %s. New balances: %s and %s."
+            .formatted(
+                currency.getId(),
+                sender.getName(),
+                currency.format(transfer.amount()),
+                targetUser.getName(),
+                currency.format(transfer.tax()),
+                TaxRates.formatPercent(transfer.rate()),
+                currency.format(transfer.total()),
+                currency.format(this.userManager.getOrFetch(sender).getBalance(currency)),
+                currency.format(targetUser.getBalance(currency))
+            ));
     }
 
     public boolean exchange(@NonNull Player player, @NonNull ExcellentCurrency sourceCurrency,

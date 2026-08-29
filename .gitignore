@@ -9,3 +9,5 @@ build/
 *.iml
 *.iws
 out/
+# WorkBuddy workspace data (session memory, not project source)
+.workbuddy/

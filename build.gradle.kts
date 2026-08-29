@@ -27,14 +27,33 @@ dependencies {
     compileOnly("com.github.MilkBowl:VaultAPI:1.7") {
         exclude(group = "org.bukkit", module = "bukkit")
     }
-    compileOnly("su.nightexpress.nightcore:main:2.15.1")
+    compileOnly("su.nightexpress.nightcore:main:2.16.1")
     compileOnly("me.clip:placeholderapi:2.11.6")
     compileOnly("org.black_ixx:playerpoints:3.0.0")
+
+    // Only needed so src/test can compile the placeholder contract sample.
+    testImplementation("io.papermc.paper:paper-api:26.1.2.build.+")
+    testImplementation("su.nightexpress.nightcore:main:2.16.1")
+}
+
+// Prints what the transfer-tax placeholders actually return, straight from samples/tax.yml.
+// Run: gradlew printPlaceholderSamples
+tasks.register<JavaExec>("printPlaceholderSamples") {
+    group = "verification"
+    description = "Prints live output of the transfer tax placeholders (cross-plugin contract)."
+    classpath = sourceSets.test.get().runtimeClasspath
+    mainClass = "su.nightexpress.excellenteconomy.tax.PlaceholderContractSample"
+    args("samples/tax.yml")
 }
 
 tasks {
     withType<JavaCompile> {
         options.encoding = "UTF-8"
+    }
+
+    // src/test holds a runnable sample (see printPlaceholderSamples), not JUnit tests.
+    test {
+        failOnNoDiscoveredTests.set(false)
     }
 
     processResources {

@@ -1,0 +1,96 @@
+# ---------------------------------------------------------------------------
+# ExcellentEconomy - Transfer Tax
+#
+# Location:  plugins/ExcellentEconomy/tax.yml
+# Reload:    /excellenteconomy reload
+#
+# The tax applies to the /pay (player-to-player transfer) command only.
+# Admin operations (/eco give, /eco take, /eco set), Vault API calls, shop
+# plugins and quest rewards are NOT taxed.
+#
+# The payer covers the tax: they are charged (amount + tax) while the receiver
+# gets exactly `amount`. The tax itself is destroyed (deflationary sink).
+# ---------------------------------------------------------------------------
+
+# Master switch. When false, /pay transfers immediately with no tax and no
+# confirmation step - identical to upstream behaviour.
+Enabled: true
+
+# Rate applied when no permission tier and no wealth tier matches.
+# Written as a plain decimal: 0.05 = 5%.
+Base_Rate: 0.05
+
+# Flat amount added on top of the percentage, before rounding.
+# Useful if you want every transfer to cost at least a little.
+Fixed_Amount: 0
+
+# Smallest tax that can be charged on a whole-number currency.
+# Without this floor, a 1-coin transfer at 5% would round to 0 and let players
+# dodge the tax by splitting a payment into many tiny ones.
+Min_Tax_Amount: 1
+
+# Hard ceiling for the effective rate, applied after tiers are combined.
+# Guards against a misconfigured ADD combination stacking tiers into 100%+.
+Max_Rate: 0.5
+
+# How the raw tax is rounded to a payable amount.
+#   UP   - round away from zero (player pays slightly more)
+#   DOWN - round towards zero (player pays slightly less)
+# Decimal currencies are rounded to 2 decimal places either way.
+Rounding: UP
+
+# How to merge a permission tier with a wealth tier when both match.
+#   MAX         - use the higher of the two
+#   MIN         - use the lower of the two (rewards the player)
+#   ADD         - stack them together
+#   FIRST_MATCH - permission tier always wins
+Combination: MAX
+
+# How long a pending transfer stays valid, in seconds.
+# After this the player must run /pay again.
+Confirm_Timeout_Seconds: 60
+
+# Aliases for the confirmation command. The first alias is the one shown to
+# players in the confirmation box. Comma separated.
+Confirm_Command_Aliases: confirm
+
+# ---------------------------------------------------------------------------
+# Permission tiers
+#
+# Stored as a list, NOT a mapping. Permission nodes contain dots, and a dotted
+# key would be parsed as a nested path by the YAML reader.
+#
+# A player holding several tiers keeps the LOWEST rate among them, so you can
+# hand out "member" to everyone and "vip" on top without ever raising a bill.
+# ---------------------------------------------------------------------------
+Permission_Tiers:
+  0:
+    permission: excellenteconomy.tax.rate.vip
+    rate: 0.02
+  1:
+    permission: excellenteconomy.tax.rate.member
+    rate: 0.03
+
+# ---------------------------------------------------------------------------
+# Wealth tiers
+#
+# Driven by the payer's balance of the currency being sent. Tiers are matched
+# highest bracket first, so ordering in this file does not matter.
+# ---------------------------------------------------------------------------
+Wealth_Tiers:
+  0:
+    min_balance: 1000000
+    rate: 0.10
+  1:
+    min_balance: 100000
+    rate: 0.07
+
+# ---------------------------------------------------------------------------
+# Permissions
+#
+#   excellenteconomy.command.confirm  default: TRUE  - run the confirm command.
+#                                     MUST stay TRUE: downstream plugins
+#                                     (MenuWallet) dispatch it as the player.
+#   excellenteconomy.tax.exempt       default: FALSE - pay no transfer tax and
+#                                     skip the confirmation step's tax line.
+# ---------------------------------------------------------------------------
