@@ -100,6 +100,7 @@ public final class PlaceholderContractSample {
         balanceEditInvariants();
         messageKeyPaths();
         shippedDefaultIsDisabled(taxFile);
+        tierKeysAreOpaque();
 
         System.out.println();
         System.out.println(failures == 0
@@ -166,6 +167,62 @@ public final class PlaceholderContractSample {
 
         check(shipped, "Steve as shipped", player("Steve"), COINS, "0");
         check(shipped, "Rich as shipped", player("Rich"), COINS, "0");
+        System.out.println();
+    }
+
+    /**
+     * Tier keys are opaque identifiers: an admin may number them from 1, rename them or
+     * reorder them. The old writeDefaults() guard checked for "Permission_Tiers.0" - so a
+     * config that simply did not start at 0 was treated as uninitialized, the default
+     * vip/member tiers were injected back, and the admin's own entries were clobbered.
+     * Reported live on a server (2026-08-30): "I renamed 0 to 1 and it forced a default 0
+     * back on and overwrote my permission".
+     */
+    private static void tierKeysAreOpaque() {
+        System.out.println("--- tier keys are opaque (no forced defaults) ---");
+
+        String yaml = """
+            Enabled: true
+            Base_Rate: 0.05
+            Permission_Tiers:
+              1:
+                permission: weight.1
+                rate: 0.04
+              2:
+                permission: weight.2
+                rate: 0.06
+              5:
+                permission: weight.5
+                rate: 0.09
+            Wealth_Tiers:
+              7:
+                min_balance: 100000
+                rate: 0.07
+            """;
+
+        YamlConfiguration raw = new YamlConfiguration();
+        try {
+            raw.loadFromString(yaml);
+        }
+        catch (Exception exception) {
+            throw new IllegalStateException("Bad inline YAML for tierKeysAreOpaque", exception);
+        }
+
+        // Same load path as the plugin: writeDefaults() then load().
+        TaxConfig config = new TaxConfig();
+        config.writeDefaults(raw);
+        config.load(raw);
+
+        // The admin's own entries must survive writeDefaults untouched.
+        expectTrue("tier '1' permission not overwritten",
+            "weight.1".equals(raw.getString("Permission_Tiers.1.permission")));
+        expectTrue("tier '2' rate not overwritten",
+            Double.compare(raw.getDouble("Permission_Tiers.2.rate"), 0.06D) == 0);
+        expectTrue("no default tier '0' injected", !raw.contains("Permission_Tiers.0"));
+
+        // And load() must read every key, not just a run starting at 0.
+        expect("permission tier count", String.valueOf(config.getPermissionTiers().size()), "3");
+        expect("wealth tier count", String.valueOf(config.getWealthTiers().size()), "1");
         System.out.println();
     }
 

@@ -128,7 +128,11 @@ public class TaxConfig {
             ));
         }
 
-        if (!config.contains("Permission_Tiers.0")) {
+        // 档位键名是展示用的任意标识，用户可能不从 0 开始、也可能重排/改名。
+        // 守卫必须看"整个节是否存在"，而不是看某个特定档位键：
+        // 只看 "Permission_Tiers.0" 的话，用户把 0 改成 1 会被误判为"未初始化"，
+        // 从而把默认档位写回去、覆盖用户自己的配置。
+        if (!config.contains("Permission_Tiers")) {
             config.set("Permission_Tiers.0.permission", "excellenteconomy.tax.rate.vip");
             config.set("Permission_Tiers.0.rate", 0.02D);
             config.set("Permission_Tiers.1.permission", "excellenteconomy.tax.rate.member");
@@ -139,6 +143,7 @@ public class TaxConfig {
                 " 以列表存储而非键值映射：权限节点含点号，带点的 YAML 键",
                 " 会被配置读取器解析成嵌套路径。",
                 "",
+                " 档位键名（0、1、2...）只用于在文件里区分各档位，可任意命名、任意顺序。",
                 " 玩家持有多个档位时，取其中最低税率 —— 可以给全员发 member、",
                 " 再在此基础上发 vip，绝不会抬高账单。"
             ));
@@ -148,7 +153,7 @@ public class TaxConfig {
             config.setComments("Permission_Tiers.1.rate", List.of(" 该档位的税率"));
         }
 
-        if (!config.contains("Wealth_Tiers.0")) {
+        if (!config.contains("Wealth_Tiers")) {
             config.set("Wealth_Tiers.0.min_balance", 1000000);
             config.set("Wealth_Tiers.0.rate", 0.10D);
             config.set("Wealth_Tiers.1.min_balance", 100000);
@@ -183,18 +188,23 @@ public class TaxConfig {
         }
 
         this.permissionTiers.clear();
-        for (int index = 0; config.contains("Permission_Tiers." + index); index++) {
-            String permission = config.getString("Permission_Tiers." + index + ".permission");
-            double rate = config.getDouble("Permission_Tiers." + index + ".rate");
+        // 档位键名是任意标识：不能假设从 0 开始连续编号。遍历节内全部键。
+        for (String key : config.getConfigurationSection("Permission_Tiers") == null
+            ? java.util.Set.<String>of()
+            : config.getConfigurationSection("Permission_Tiers").getKeys(false)) {
+            String permission = config.getString("Permission_Tiers." + key + ".permission");
+            double rate = config.getDouble("Permission_Tiers." + key + ".rate");
             if (permission == null || permission.isBlank() || rate < 0D) continue;
 
             this.permissionTiers.add(new PermissionTier(permission.trim(), rate));
         }
 
         this.wealthTiers.clear();
-        for (int index = 0; config.contains("Wealth_Tiers." + index); index++) {
-            double minBalance = config.getDouble("Wealth_Tiers." + index + ".min_balance");
-            double rate = config.getDouble("Wealth_Tiers." + index + ".rate");
+        for (String key : config.getConfigurationSection("Wealth_Tiers") == null
+            ? java.util.Set.<String>of()
+            : config.getConfigurationSection("Wealth_Tiers").getKeys(false)) {
+            double minBalance = config.getDouble("Wealth_Tiers." + key + ".min_balance");
+            double rate = config.getDouble("Wealth_Tiers." + key + ".rate");
             if (minBalance < 0D || rate < 0D) continue;
 
             this.wealthTiers.add(new WealthTier(minBalance, rate));
