@@ -1,96 +1,92 @@
 # ---------------------------------------------------------------------------
-# ExcellentEconomy - Transfer Tax
+# ExcellentEconomy - 转账税 (Transfer Tax)
 #
-# Location:  plugins/ExcellentEconomy/tax.yml
-# Reload:    /excellenteconomy reload
+# 文件位置：plugins/ExcellentEconomy/tax.yml
+# 重载方式：/excellenteconomy reload
 #
-# The tax applies to the /pay (player-to-player transfer) command only.
-# Admin operations (/eco give, /eco take, /eco set), Vault API calls, shop
-# plugins and quest rewards are NOT taxed.
+# 税费仅对 /pay（玩家对玩家转账）生效。
+# 管理员操作（/eco give、/eco take、/eco set）、Vault API 调用、
+# 商店插件与任务奖励均不收税。
 #
-# The payer covers the tax: they are charged (amount + tax) while the receiver
-# gets exactly `amount`. The tax itself is destroyed (deflationary sink).
+# 税费由付款方承担：付款方被扣除（金额 + 税额），收款方精确收到金额，
+# 税额本身直接销毁（通缩回收）。
 # ---------------------------------------------------------------------------
 
-# Master switch. When false, /pay transfers immediately with no tax and no
-# confirmation step - identical to upstream behaviour.
+# 总开关。为 false 时 /pay 立即到账，无税、无确认步骤 —— 与原版行为完全一致。
 Enabled: false
 
-# Rate applied when no permission tier and no wealth tier matches.
-# Written as a plain decimal: 0.05 = 5%.
+# 未命中任何权限档位与财富档位时适用的税率。
+# 书写为纯小数：0.05 = 5%。
 Base_Rate: 0.05
 
-# Flat amount added on top of the percentage, before rounding.
-# Useful if you want every transfer to cost at least a little.
+# 在百分比之外额外叠加的固定税额（取整前计算）。
+# 想让每笔转账至少收一点税时很有用。
 Fixed_Amount: 0
 
-# Smallest tax that can be charged on a whole-number currency.
-# Without this floor, a 1-coin transfer at 5% would round to 0 and let players
-# dodge the tax by splitting a payment into many tiny ones.
+# 整数货币可收取的最小税额。
+# 没有此下限时，1 金币按 5% 收税取整后为 0，玩家可以拆成多笔小额转账避税。
 Min_Tax_Amount: 1
 
-# Hard ceiling for the effective rate, applied after tiers are combined.
-# Guards against a misconfigured ADD combination stacking tiers into 100%+.
+# 有效税率的硬上限，在档位合并之后生效。
+# 防止误配的 ADD 组合把档位叠加到 100% 以上。
 Max_Rate: 0.5
 
-# How the raw tax is rounded to a payable amount.
-#   UP   - round away from zero (player pays slightly more)
-#   DOWN - round towards zero (player pays slightly less)
-# Decimal currencies are rounded to 2 decimal places either way.
+# 原始税额如何取整为可支付金额。
+#   UP   - 远离零取整（玩家略多付）
+#   DOWN - 趋向零取整（玩家略少付）
+# 无论哪种模式，小数货币均保留 2 位小数。
 Rounding: UP
 
-# How to merge a permission tier with a wealth tier when both match.
-#   MAX         - use the higher of the two
-#   MIN         - use the lower of the two (rewards the player)
-#   ADD         - stack them together
-#   FIRST_MATCH - permission tier always wins
+# 权限档位与财富档位同时命中时如何合并。
+#   MAX         - 取两者中较高者
+#   MIN         - 取两者中较低者（对玩家有利）
+#   ADD         - 两者相加
+#   FIRST_MATCH - 权限档位恒胜出
 Combination: MAX
 
-# How long a pending transfer stays valid, in seconds.
-# After this the player must run /pay again.
+# 待确认转账的有效时长（秒）。超时后玩家需重新执行 /pay。
 Confirm_Timeout_Seconds: 60
 
-# Aliases for the confirmation command. The first alias is the one shown to
-# players in the confirmation box. Comma separated.
+# 确认指令的别名，逗号分隔。第一个别名是确认框中展示给玩家的那个。
 Confirm_Command_Aliases: confirm
 
 # ---------------------------------------------------------------------------
-# Permission tiers
+# 权限档位
 #
-# Stored as a list, NOT a mapping. Permission nodes contain dots, and a dotted
-# key would be parsed as a nested path by the YAML reader.
+# 以列表存储而非键值映射：权限节点含点号，带点的 YAML 键
+# 会被配置读取器解析成嵌套路径。
 #
-# A player holding several tiers keeps the LOWEST rate among them, so you can
-# hand out "member" to everyone and "vip" on top without ever raising a bill.
+# 玩家持有多个档位时，取其中最低税率 —— 可以给全员发 member、
+# 再在此基础上发 vip，绝不会抬高账单。
 # ---------------------------------------------------------------------------
 Permission_Tiers:
   0:
-    permission: excellenteconomy.tax.rate.vip
-    rate: 0.02
+    permission: excellenteconomy.tax.rate.vip   # 触发该档位的权限节点
+    rate: 0.02                                  # 该档位的税率
   1:
     permission: excellenteconomy.tax.rate.member
     rate: 0.03
 
 # ---------------------------------------------------------------------------
-# Wealth tiers
+# 财富档位
 #
-# Driven by the payer's balance of the currency being sent. Tiers are matched
-# highest bracket first, so ordering in this file does not matter.
+# 按付款方所持（正在发送的）货币的余额判定。先匹配最高档位，
+# 文件中的书写顺序无关紧要。
 # ---------------------------------------------------------------------------
 Wealth_Tiers:
   0:
-    min_balance: 1000000
-    rate: 0.10
+    min_balance: 1000000   # 触发该档位的最低余额
+    rate: 0.10             # 该档位的税率
   1:
     min_balance: 100000
     rate: 0.07
 
 # ---------------------------------------------------------------------------
-# Permissions
+# 权限
 #
-#   excellenteconomy.command.confirm  default: TRUE  - run the confirm command.
-#                                     MUST stay TRUE: downstream plugins
-#                                     (MenuWallet) dispatch it as the player.
-#   excellenteconomy.tax.exempt       default: FALSE - pay no transfer tax and
-#                                     skip the confirmation step's tax line.
+#   excellenteconomy.command.confirm  默认 TRUE  - 执行确认指令。
+#                                     必须保持 TRUE：下游插件（MenuWallet）
+#                                     会以玩家身份执行它。
+#   excellenteconomy.tax.exempt       默认 FALSE - 完全免除转账税，
+#                                     确认框中的税行也会跳过。
 # ---------------------------------------------------------------------------

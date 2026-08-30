@@ -4,7 +4,7 @@ plugins {
 }
 
 group = "su.nightexpress.excellenteconomy"
-version = "2.8.0"
+version = "2.8.0-tax-v1"
 
 java {
     toolchain {
@@ -51,10 +51,8 @@ tasks {
         options.encoding = "UTF-8"
     }
 
-    // Distinguishes this build from a stock 2.8.0 drop: ExcellentEconomy-2.8.0-tax.jar
-    jar {
-        archiveClassifier.set("tax")
-    }
+    // Version already distinguishes this build from a stock 2.8.0 drop:
+    // ExcellentEconomy-2.8.0-tax-v1.jar
 
     // src/test holds a runnable sample (see printPlaceholderSamples), not JUnit tests.
     test {
