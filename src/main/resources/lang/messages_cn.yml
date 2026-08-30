@@ -46,8 +46,6 @@ Command:
       Done:
         Sender: "<gray>你已向 <green>%player_name% <gray>转账 <gold>%amount% <gray>!"
         Notify: "<gray>你收到 <green>%player_name% <gray>转账的 <gold>%amount% <gray>!"
-  Confirm:
-    Desc: 确认待处理的转账
     Payments:
       Desc: 切换是否接受其他玩家转账
       Toggle: "<aqua>%currency_name% <gray>收款状态: <aqua>%state%"
@@ -66,6 +64,10 @@ Command:
         - "%previous_page%  <gray>页码 <yellow>%current% <dark_gray>/ <yellow>%max%  %next_page%"
         - "<dark_gray>--------------------------------"
       Entry: "<yellow>#%pos% <green>%player_name% <dark_gray>▪ <gold>%balance%"
+  Confirm:
+    Desc: 确认待处理的转账
+  Syntax:
+    InvalidCurrency: "<aqua>%input% <red>不是有效货币!"
 Tax:
   Confirm:
     Details:
@@ -162,6 +164,8 @@ Currency:
     BadName: "<red>无效名称!仅支持拉丁字母和数字"
     Duplicated: "<red>已存在同名货币"
     Success: "<gray>已创建新货币: <aqua>%currency_name% <gray>( <dark_gray>ID: <aqua>%currency_id% <dark_gray>)"
+  Operation:
+    Disabled: "<red>货币操作已临时禁用。"
   Balance:
     Display:
       Own: "<gray>余额: <gold>%balance%"

@@ -302,11 +302,6 @@ public class Lang implements LangContainer {
         .chatMessage(
             GRAY.wrap("The transfer was cancelled by another plugin. Nothing was charged."));
 
-    public static final MessageLocale TAX_CONFIRM_ERROR_TARGET_LOADING = LangEntry.builder(
-        "Tax.Confirm.Error.TargetLoading").chatMessage(
-        GRAY.wrap("Still loading that player's data, please try again in a moment."));
-
-
     public static final MessageLocale COMMAND_CURRENCY_PAYMENTS_TOGGLE = LangEntry.builder(
         "Command.Currency.Payments.Toggle").chatMessage(
             GRAY.wrap(SOFT_YELLOW.wrap(CURRENCY_NAME) + " payments acception: " + SOFT_YELLOW.wrap(GENERIC_STATE) +

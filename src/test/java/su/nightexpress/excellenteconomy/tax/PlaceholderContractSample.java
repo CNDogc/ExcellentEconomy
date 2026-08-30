@@ -98,6 +98,7 @@ public final class PlaceholderContractSample {
         configHardening();
         nonFiniteAmounts(sample);
         balanceEditInvariants();
+        messageKeyPaths();
 
         System.out.println();
         System.out.println(failures == 0
@@ -461,6 +462,66 @@ public final class PlaceholderContractSample {
         }
         finally {
             eventHook = null;
+        }
+        System.out.println();
+    }
+
+    /**
+     * Guards the shape of the shipped language file, not just its contents.
+     *
+     * <p>Inserting a key at a shallower indentation silently re-parents every following
+     * deeper-indented block, and {@code git diff} shows those lines as unchanged because their
+     * text is identical - only their parent moved. The result is a translation that resolves to
+     * nothing and falls back to English with no log entry, invisible in review. So the paths are
+     * asserted to resolve where the code reads them, and the mis-parented paths are asserted
+     * NOT to exist.
+     */
+    private static void messageKeyPaths() {
+        System.out.println("--- messages_cn.yml key paths ---");
+
+        YamlConfiguration yaml = YamlConfiguration.loadConfiguration(
+            Path.of("src/main/resources/lang/messages_cn.yml").toFile());
+
+        // Reachable from TransferTaxManager. Every one of these must resolve or a Chinese
+        // player sees English mid-transfer.
+        for (String path : List.of(
+            "Command.Confirm.Desc",
+            "Tax.Confirm.Details",
+            "Tax.Confirm.Done.Sender",
+            "Tax.Confirm.Done.Tax",
+            "Tax.Confirm.Done.Notify",
+            "Tax.Confirm.Error.None",
+            "Tax.Confirm.Error.Expired",
+            "Tax.Confirm.Error.NotEnough",
+            "Tax.Confirm.Error.RateChanged",
+            "Tax.Confirm.Error.NoPayments",
+            "Tax.Confirm.Error.TargetInvalid",
+            "Tax.Confirm.Error.Blocked"
+        )) {
+            expectTrue(path + " resolves", yaml.contains(path));
+        }
+
+        // These belong to Command.Currency, not Command.Confirm. Adding "Confirm:" at two-space
+        // indentation once swallowed all three, silently untranslating the payments toggle,
+        // currency exchange and balance leaderboard.
+        for (String path : List.of(
+            "Command.Currency.Payments.Desc",
+            "Command.Currency.Payments.Toggle",
+            "Command.Currency.Payments.Target",
+            "Command.Currency.Exchange.Desc",
+            "Command.Currency.Top.Desc",
+            "Command.Currency.Top.List",
+            "Command.Currency.Top.Entry"
+        )) {
+            expectTrue(path + " still under Command.Currency", yaml.contains(path));
+        }
+
+        for (String path : List.of(
+            "Command.Confirm.Payments",
+            "Command.Confirm.Exchange",
+            "Command.Confirm.Top"
+        )) {
+            expectTrue(path + " not re-parented under Confirm", !yaml.contains(path));
         }
         System.out.println();
     }
