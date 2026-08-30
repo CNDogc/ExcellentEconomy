@@ -11,3 +11,7 @@ build/
 out/
 # WorkBuddy workspace data (session memory, not project source)
 .workbuddy/
+
+# Server runtime dumps copied in for debugging (logs/latest.log, config.yml, lang/*)
+# These are live server state, not project source - never commit them.
+logs/
