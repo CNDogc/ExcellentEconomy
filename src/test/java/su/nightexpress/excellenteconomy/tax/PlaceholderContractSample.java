@@ -99,6 +99,7 @@ public final class PlaceholderContractSample {
         nonFiniteAmounts(sample);
         balanceEditInvariants();
         messageKeyPaths();
+        shippedDefaultIsDisabled(taxFile);
 
         System.out.println();
         System.out.println(failures == 0
@@ -149,6 +150,22 @@ public final class PlaceholderContractSample {
             System.out.printf("%-6s %-40s -> %-14s want %s%n",
                 ok ? "PASS" : "FAIL", key, String.valueOf(actual), String.valueOf(expected));
         }
+        System.out.println();
+    }
+
+    /**
+     * The feature must ship switched off. Dropping this jar onto a stock server has to behave
+     * exactly like upstream - otherwise an admin who just wanted the bugfixes starts charging
+     * their players 5% without ever opening tax.yml.
+     */
+    private static void shippedDefaultIsDisabled(@NonNull Path taxFile) throws Exception {
+        System.out.println("--- shipped default is disabled ---");
+
+        Fixture shipped = fixtureFromFile("samples/tax.yml", taxFile,
+            Map.of("Steve", 500D, "Rich", 500_000D), false);
+
+        check(shipped, "Steve as shipped", player("Steve"), COINS, "0");
+        check(shipped, "Rich as shipped", player("Rich"), COINS, "0");
         System.out.println();
     }
 
@@ -591,10 +608,21 @@ public final class PlaceholderContractSample {
     @NonNull
     private static Fixture fixtureFromFile(@NonNull String name, @NonNull Path file,
                                            @NonNull Map<String, Double> balances) throws Exception {
+        return fixtureFromFile(name, file, balances, true);
+    }
+
+    private static Fixture fixtureFromFile(@NonNull String name, @NonNull Path file,
+                                           @NonNull Map<String, Double> balances,
+                                           boolean enabled) throws Exception {
         // A plain Bukkit YamlConfiguration, not nightcore's FileConfig: the latter needs a
         // running NightCore plugin to have registered its codecs.
         YamlConfiguration yaml = new YamlConfiguration();
         yaml.load(file.toFile());
+
+        // samples/tax.yml ships disabled, matching what the plugin generates on a fresh
+        // install - but every rate and amount expectation below describes the tax maths,
+        // which only runs once the feature is switched on.
+        yaml.set("Enabled", enabled);
 
         return fixture(name, yaml, balances);
     }

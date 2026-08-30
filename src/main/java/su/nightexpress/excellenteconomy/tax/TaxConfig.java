@@ -44,7 +44,7 @@ public class TaxConfig {
     private final List<WealthTier>     wealthTiers     = new ArrayList<>();
 
     public void writeDefaults(@NonNull YamlConfiguration config) {
-        if (!config.contains("Enabled")) config.set("Enabled", true);
+        if (!config.contains("Enabled")) config.set("Enabled", false);
         if (!config.contains("Base_Rate")) config.set("Base_Rate", 0.05D);
         if (!config.contains("Fixed_Amount")) config.set("Fixed_Amount", 0D);
         if (!config.contains("Min_Tax_Amount")) config.set("Min_Tax_Amount", 1D);
@@ -70,7 +70,7 @@ public class TaxConfig {
     }
 
     public void load(@NonNull YamlConfiguration config) {
-        this.enabled = config.getBoolean("Enabled", true);
+        this.enabled = config.getBoolean("Enabled", false);
         this.baseRate = Math.max(0D, config.getDouble("Base_Rate", 0.05D));
         this.fixedAmount = Math.max(0D, config.getDouble("Fixed_Amount", 0D));
         this.minTaxAmount = Math.max(0D, config.getDouble("Min_Tax_Amount", 1D));

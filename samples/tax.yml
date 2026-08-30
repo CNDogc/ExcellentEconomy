@@ -14,7 +14,7 @@
 
 # Master switch. When false, /pay transfers immediately with no tax and no
 # confirmation step - identical to upstream behaviour.
-Enabled: true
+Enabled: false
 
 # Rate applied when no permission tier and no wealth tier matches.
 # Written as a plain decimal: 0.05 = 5%.
