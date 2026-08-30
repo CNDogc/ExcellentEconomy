@@ -80,7 +80,9 @@ Wealth_Tiers:            # 先匹配最高档位；文件内的书写顺序无�
 
 这是**回归检查，而非演示**。它加载 `samples/tax.yml`，运行真实的 `TaxRates` 代码，断言全部 99 个值符合预期 —— 税收逻辑一变，构建变红，退出码 1。
 
-它还守护 `messages_cn.yml` 的结构：在某处插入一个更浅缩进的键，会悄悄把后面所有更深缩进的块重新挂到新的父级下，而 `git diff` 会显示这些行*未变化*，因为变化的只是它们的父级。因此这些路径被断言为能在代码读取的位置解析，挂错的翻译会让构建失败，而不是悄悄回退到英文。
+它还守护 `lang_cn.yml` 的结构：在某处插入一个更浅缩进的键，会悄悄把后面所有更深缩进的块重新挂到新的父级下，而 `git diff` 会显示这些行*未变化*，因为变化的只是它们的父级。因此这些路径被断言为能在代码读取的位置解析，挂错的翻译会让构建失败，而不是悄悄回退到英文。
+
+文件名必须是 `lang_<语言>.yml`，不是 `messages_<语言>.yml`：nightcore 的 `LangRegistry` 用 `lang_` 前缀拼文件名（2.16.1 与 2.16.4 的常量池都已核实），`messages_` 是旧命名，要靠 `updateLegacy()` 迁移，而**该迁移在目标文件已存在时直接跳过**——打旧命名等于新翻译永远送不到已装好的服务器上。
 
 ```
 --- transfer_tax_rate ---
@@ -97,7 +99,7 @@ PASS   Rich  (permission wins)      transfer_tax_rate_coins          -> "0.3"   
 OK - 99 checks passed.
 ```
 
-覆盖范围：基础税率、两套档位体系、免税权限、`null` 玩家回退、小数与整数货币、两种取整模式、`Min_Tax_Amount` 下限、`ADD` 模式下的 `Max_Rate` 限幅、全部四种 `Combination` 模式、畸形载荷（未知货币、非数字、负数与零金额、缺少分隔符）、资金流转代码依赖的 `ChangeBalanceEvent` 不变量、一项漂移守护（断言每个 `writeDefaults` 值仍与 `samples/tax.yml` 一致）、配置加固（负数被限幅、未知枚举值回退、畸形档位被跳过）、非有限金额（NaN 与 Infinity 收敛为零金额分解，而非向下游泄漏非有限数值），以及针对 `messages_cn.yml` 的结构守护（断言每个键都能在其代码读取的父级下解析）。
+覆盖范围：基础税率、两套档位体系、免税权限、`null` 玩家回退、小数与整数货币、两种取整模式、`Min_Tax_Amount` 下限、`ADD` 模式下的 `Max_Rate` 限幅、全部四种 `Combination` 模式、畸形载荷（未知货币、非数字、负数与零金额、缺少分隔符）、资金流转代码依赖的 `ChangeBalanceEvent` 不变量、一项漂移守护（断言每个 `writeDefaults` 值仍与 `samples/tax.yml` 一致）、配置加固（负数被限幅、未知枚举值回退、畸形档位被跳过）、非有限金额（NaN 与 Infinity 收敛为零金额分解，而非向下游泄漏非有限数值），以及针对 `lang_cn.yml` 的结构守护（断言每个键都能在其代码读取的父级下解析）。
 
 `getRate` 和 `calculate` 是*仅有的*两处计算税率与税额的地方 —— `/confirm` 与占位符都经由它们路由，这正是菜单里显示的数字与实际扣掉的数字永远一致的原因。
 
@@ -182,7 +184,9 @@ The tax math is isolated behind `TaxRates` and has no dependency on a running se
 
 This is a **regression check, not a demo**. It loads `samples/tax.yml`, runs the real `TaxRates` code and asserts all 99 values against expectations — a change to the tax math turns the build red, exit code 1.
 
-It also guards the shape of `messages_cn.yml`: inserting a key at a shallower indentation silently re-parents every following deeper-indented block, and `git diff` shows those lines as *unchanged* because only their parent moved. The paths are therefore asserted to resolve where the code reads them, so a mis-parented translation fails the build instead of quietly falling back to English.
+It also guards the shape of `lang_cn.yml`: inserting a key at a shallower indentation silently re-parents every following deeper-indented block, and `git diff` shows those lines as *unchanged* because only their parent moved. The paths are therefore asserted to resolve where the code reads them, so a mis-parented translation fails the build instead of quietly falling back to English.
+
+The files must be named `lang_<locale>.yml`, not `messages_<locale>.yml`: nightcore's `LangRegistry` builds the name from a `lang_` prefix (verified in the constant pool of both 2.16.1 and 2.16.4). `messages_` is the legacy name that `updateLegacy()` migrates — and **that migration is skipped when the target file already exists**, so shipping the legacy name means new translations never reach an existing install.
 
 ```
 --- transfer_tax_rate ---
@@ -199,6 +203,6 @@ PASS   Rich  (permission wins)      transfer_tax_rate_coins          -> "0.3"   
 OK - 99 checks passed.
 ```
 
-Covered: base rate, both tier systems, exempt permission, `null` player fallback, decimal vs whole-number currencies, both rounding modes, the `Min_Tax_Amount` floor, `Max_Rate` clamping under `ADD`, all four `Combination` modes, malformed payloads (unknown currency, non-numeric, negative and zero amounts, missing separator), the `ChangeBalanceEvent` invariants the money-movement code depends on, a drift guard asserting every `writeDefaults` value still matches `samples/tax.yml`, config hardening (negative numbers clamped, unknown enum values falling back, malformed tiers skipped), non-finite amounts (NaN and Infinity collapsing to a zero-amount breakdown rather than leaking a non-finite number downstream), and a structural guard on `messages_cn.yml` asserting every key resolves under the parent the code reads it from.
+Covered: base rate, both tier systems, exempt permission, `null` player fallback, decimal vs whole-number currencies, both rounding modes, the `Min_Tax_Amount` floor, `Max_Rate` clamping under `ADD`, all four `Combination` modes, malformed payloads (unknown currency, non-numeric, negative and zero amounts, missing separator), the `ChangeBalanceEvent` invariants the money-movement code depends on, a drift guard asserting every `writeDefaults` value still matches `samples/tax.yml`, config hardening (negative numbers clamped, unknown enum values falling back, malformed tiers skipped), non-finite amounts (NaN and Infinity collapsing to a zero-amount breakdown rather than leaking a non-finite number downstream), and a structural guard on `lang_cn.yml` asserting every key resolves under the parent the code reads it from.
 
 `getRate` and `calculate` are the *only* places rates and amounts are computed — both `/confirm` and the placeholders route through them, which is what guarantees the number shown in a menu always matches the number actually deducted.

@@ -494,10 +494,15 @@ public final class PlaceholderContractSample {
      * NOT to exist.
      */
     private static void messageKeyPaths() {
-        System.out.println("--- messages_cn.yml key paths ---");
+        System.out.println("--- lang_cn.yml key paths ---");
 
+        // nightcore's LangRegistry builds the file name from a "lang_" recipe - verified in the
+        // constant pool of both nightcore 2.16.1 and 2.16.4 - so the plugin reads
+        // /lang/lang_<locale>.yml. "messages_*.yml" is the legacy name that updateLegacy()
+        // migrates into "lang_*.yml"; that migration is skipped when the target already exists,
+        // so shipping the legacy name means new translations never reach an existing install.
         YamlConfiguration yaml = YamlConfiguration.loadConfiguration(
-            Path.of("src/main/resources/lang/messages_cn.yml").toFile());
+            Path.of("src/main/resources/lang/lang_cn.yml").toFile());
 
         // Reachable from TransferTaxManager. Every one of these must resolve or a Chinese
         // player sees English mid-transfer.
