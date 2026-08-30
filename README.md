@@ -1,81 +1,117 @@
-<p align="center">
-  <img src="https://nightexpressdev.com/excellenteconomy/logo.png">
-</p>
+# ExcellentEconomy – Transfer Tax 分支
 
-**ExcellentEconomy** is a modern, lightweight economy plugin that lets you create unlimited custom currencies. You can finally manage your Coins, Points, Tokens, and any other currency in one place instead of using multiple plugins - with built-in **Vault** and **PlaceholderAPI** support.
-
-Everything is designed for **total customization**, from text strings to in-game commands. You have the freedom to **change everything** to perfectly match your server's style and needs!
-
-To upgrade from CoinsEngine, see [This Guide](https://nightexpressdev.com/excellenteconomy/upgrade-guide/).
-
-## 🖼️ Showcase
-
-![](https://nightexpressdev.com/excellenteconomy/img/config.png)
-![](https://nightexpressdev.com/excellenteconomy/img/leaderboards.png)
-
-## ⭐ Core Features
-
-- **Vault Integration** – Works right out of the box with Vault to hook into all your economy stuff automatically.
-- **Database Options** – Pick the storage that fits your needs. Use SQLite for a simple setup or MySQL if you are scaling up.
-- **Modern Formatting** – Make your messages pop! We fully support MiniMessage, so you can use gradients and hex colors in every menu and chat message.
-- **Amount Shortcuts** – Stop counting zeros. Just type `1k` or `1m` in commands to save yourself some time.
-- **Data Import** – Switching from another plugin? No big deal. You can move all player balances over with just one command.
-- **Data Maintenance** – Keep things snappy by automatically purging old data from players who haven't logged in for a while.
-- **Operation Logs** – Stay in the loop. Every single transaction is tracked in the console or a dedicated log file so nothing goes missing.
-- **Wallet** – Check all your different balances at once with a single, easy command.
-- **PlaceholderAPI Support** – Loaded with built-in placeholders, making it easy to display player/server stats anywhere on your server.
-- **Transfer Tax** – Charge a fee on player-to-player transfers, with permission tiers, wealth brackets, and a confirm step. See [Transfer Tax](#-transfer-tax).
-- **Developer API** – Use API to hook into the system and integrate it with your plugins.
+本项目 fork 自 [nulli0n/ExcellentEconomy](https://github.com/nulli0n/ExcellentEconomy)。原插件是一款支持无限自定义货币的现代轻量经济插件（内置 **Vault** 与 **PlaceholderAPI** 支持），本分支在其基础上新增了**玩家间转账税**功能。
 
 ---
 
-## 💵 Currency Features
+## 💸 转账税
 
-- **Display Name** – Pick any name you want for your currency.
-- **Unique Symbols** – Assign a visual symbol (like a dollar sign or a custom character) to represent your funds.
-- **Flexible Formatting** – Fully customize how the currency balance looks in-game.
-- **Custom Commands** – Set up your own shorthand commands so players can access their wallet easily.
-- **Visual Icons** – Choose any material or item to act as the icon for a currency in various menus.
-- **Decimal Support** – Toggle between simple whole numbers or precise decimal values for more granular economies.
-- **Permission Access** – Control whether everyone can use the currency or if it requires a specific permission node.
-- **P2P Transfers** – Enable or disable the ability for players to send money to each other, complete with minimum transfer limits.
-- **Balance Limits** – Define exactly how much cash a new player starts with and set a maximum cap to prevent infinite wealth.
-- **Exchange Rates** – Set up a conversion system to swap a currency for others at whatever rate you choose.
-- **Database Management** – Specify a custom database column name for clean data storage.
-- **Cross-Server Syncing** – Choose if the currency should stay local to one server or synchronize across your entire network.
-- **Custom Prefixes** – Add a specific tag or prefix to identify a currency in all chat messages.
-- **Leaderboards** – Enable rankings to show off the top earners and track the richest players on the server.
+对玩家间转账收取费用。由付款方承担：付款方被扣除 `金额 + 税额`，收款方精确收到 `金额`，税额直接销毁 —— 通缩回收机制。
 
-## 🧰 Requirements
+**范围：** 仅对 `/pay` 指令征税。管理员操作（`/eco give|take|set`）、Vault API 调用、商店插件与任务奖励均**不受**影响。
 
-The following versions and platforms are supported: 
+### 配置
 
-| **Server Version**  | **Paper** | **Spigot** | **Folia** | **Java Version**
-| :---: | :---: | :---: | :--: | :---: |
-| 26.2 | ✔️ | ✔️ | ❌ | 25 |
-| 26.1.2 | ✔️ | ✔️ | ❌ | 25 |
-| 26.1.1 | ✔️ | ✔️ | ❌ | 25 |
-| 1.21.11 | ✔️ | ✔️ | ❌ | 25 |
-| 1.21.10 | ✔️ | ✔️ | ❌ | 25 |
-| 1.21.9 | ✔️ | ✔️ | ❌ | 25 |
-| 1.21.8 | ✔️ | ✔️ | ❌ | 25 |
+首次启动时生成 `plugins/ExcellentEconomy/tax.yml`，`/excellenteconomy reload` 会重新读取。全部配置项：
 
-- Anything not listed in the compatibility table is **NOT** supported.
-- Make sure to check out all known issues and incompatibilities [here](https://nightexpressdev.com/excellenteconomy/faq/).
+| 配置项 | 默认值 | 说明 |
+| :--- | :--- | :--- |
+| `Enabled` | `false` | 总开关。为 `false` 时 `/pay` 立即到账，无税无确认 —— 与原版行为完全一致。 |
+| `Base_Rate` | `0.05` | 无档位命中时的税率。纯小数，`0.05` = 5%。 |
+| `Fixed_Amount` | `0` | 在百分比之外额外叠加的固定税额，取整前计算。 |
+| `Min_Tax_Amount` | `1` | 整数货币的税额下限，防止小额转账取整后钻空子免税。 |
+| `Max_Rate` | `0.5` | 在档位合并**之后**生效的硬上限 —— 防止误配的 `ADD` 叠加超过 100%。 |
+| `Rounding` | `UP` | `UP` 远离零取整，`DOWN` 趋向零取整。小数货币无论哪种模式均保留 2 位。 |
+| `Combination` | `MAX` | 权限档位与财富档位的合并方式：`MAX`、`MIN`、`ADD`、`FIRST_MATCH`。 |
+| `Confirm_Timeout_Seconds` | `60` | 待确认转账的有效时长。 |
+| `Confirm_Command_Aliases` | `confirm` | 逗号分隔。第一个别名是展示给玩家的那个。 |
 
-**Dependencies:**
-- [NightCore](https://nightexpressdev.com/nightcore/) - Framework **required** for the plugin to run.
+两套档位体系，均可选：
 
-**Optional Plugins:**
-- [PlaceholderAPI](https://spigotmc.org/resources/6245/) - For global placeholders to use in other plugins.
+```yaml
+Permission_Tiers:        # 玩家取其持有所有档位中的最低税率
+  0:
+    permission: excellenteconomy.tax.rate.vip
+    rate: 0.02
+  1:
+    permission: excellenteconomy.tax.rate.member
+    rate: 0.03
 
-## 💸 Transfer Tax
+Wealth_Tiers:            # 先匹配最高档位；文件内的书写顺序无关
+  0:
+    min_balance: 1000000
+    rate: 0.10
+  1:
+    min_balance: 100000
+    rate: 0.07
+```
+
+> 权限档位是**列表而非键值映射**。权限节点含有点号，而带点的 YAML 键会被解析成嵌套路径。
+
+### 权限
+
+| 权限节点 | 默认 | 效果 |
+| :--- | :--- | :--- |
+| `excellenteconomy.command.confirm` | `TRUE` | 执行确认指令。**必须保持 `TRUE`** —— 下游插件会*以玩家身份*执行它。 |
+| `excellenteconomy.tax.exempt` | `FALSE` | 完全免除转账税。 |
+
+### 占位符
+
+两个占位符，供下游插件（如 MenuWallet）使用。**这是硬性的跨插件契约** —— 名称与返回格式将保持向后兼容。如需其他格式，会注册*新的*占位符，原有占位符继续可用。
+
+| 占位符 | 示例输出 |
+| :--- | :--- |
+| `%excellenteconomy_transfer_tax_rate_<货币ID>%` | `0.05` |
+| `%excellenteconomy_transfer_tax_amount_<货币ID>_<金额>%` | `50` |
+
+两者均保证：纯小数字符串，绝不返回 `null`、绝不为空、无颜色代码、无百分号、无科学计数法，且在玩家为 `null` 时也能解析（回退到基础税率）。
+
+金额占位符按**最后一个**下划线切分载荷，因为货币 ID 本身可以合法包含下划线（如 `mystery_coins`），而金额永远不会。
+
+### 无服务器验证税收计算
+
+税收计算被隔离在 `TaxRates` 中，不依赖运行中的服务器，可以直接验证：
+
+```
+./gradlew printPlaceholderSamples
+```
+
+（如果 wrapper 连不上 `services.gradle.org`，改用本地 Gradle：`gradle printPlaceholderSamples`。）
+
+这是**回归检查，而非演示**。它加载 `samples/tax.yml`，运行真实的 `TaxRates` 代码，断言全部 99 个值符合预期 —— 税收逻辑一变，构建变红，退出码 1。
+
+它还守护 `messages_cn.yml` 的结构：在某处插入一个更浅缩进的键，会悄悄把后面所有更深缩进的块重新挂到新的父级下，而 `git diff` 会显示这些行*未变化*，因为变化的只是它们的父级。因此这些路径被断言为能在代码读取的位置解析，挂错的翻译会让构建失败，而不是悄悄回退到英文。
+
+```
+--- transfer_tax_rate ---
+PASS   Steve (no tiers)             transfer_tax_rate_coins          -> "0.05"   want "0.05"
+PASS   Rich  (wealth tier)          transfer_tax_rate_coins          -> "0.07"   want "0.07"
+PASS   Vip   (exempt)               transfer_tax_rate_coins          -> "0"      want "0"
+PASS   null  (no player context)    transfer_tax_rate_coins          -> "0.05"   want "0.05"
+
+--- Combination=ADD and Max_Rate clamping ---
+PASS   Rich  (0.30 + 0.40, clamped) transfer_tax_rate_coins          -> "0.5"    want "0.5"
+PASS   Rich  (0.30 + 0.40, no clamp) transfer_tax_rate_coins         -> "0.7"    want "0.7"
+PASS   Rich  (permission wins)      transfer_tax_rate_coins          -> "0.3"    want "0.3"
+
+OK - 99 checks passed.
+```
+
+覆盖范围：基础税率、两套档位体系、免税权限、`null` 玩家回退、小数与整数货币、两种取整模式、`Min_Tax_Amount` 下限、`ADD` 模式下的 `Max_Rate` 限幅、全部四种 `Combination` 模式、畸形载荷（未知货币、非数字、负数与零金额、缺少分隔符）、资金流转代码依赖的 `ChangeBalanceEvent` 不变量、一项漂移守护（断言每个 `writeDefaults` 值仍与 `samples/tax.yml` 一致）、配置加固（负数被限幅、未知枚举值回退、畸形档位被跳过）、非有限金额（NaN 与 Infinity 收敛为零金额分解，而非向下游泄漏非有限数值），以及针对 `messages_cn.yml` 的结构守护（断言每个键都能在其代码读取的父级下解析）。
+
+`getRate` 和 `calculate` 是*仅有的*两处计算税率与税额的地方 —— `/confirm` 与占位符都经由它们路由，这正是菜单里显示的数字与实际扣掉的数字永远一致的原因。
+
+---
+
+## English
+
+### Transfer Tax
 
 Charge a fee on player-to-player transfers. The payer covers it: they are charged `amount + tax`, the receiver gets exactly `amount`, and the tax itself is destroyed — a deflationary sink.
 
 **Scope:** only the `/pay` command is taxed. Admin operations (`/eco give|take|set`), Vault API calls, shop plugins and quest rewards are **not** touched.
 
-### Setup
+#### Setup
 
 `plugins/ExcellentEconomy/tax.yml` is generated on first start and re-read by `/excellenteconomy reload`. All knobs:
 
@@ -113,14 +149,14 @@ Wealth_Tiers:            # matched highest bracket first; file order does not ma
 
 > Permission tiers are a **list, not a mapping**. Permission nodes contain dots, and a dotted YAML key would be parsed as a nested path.
 
-### Permissions
+#### Permissions
 
 | Node | Default | Effect |
 | :--- | :--- | :--- |
 | `excellenteconomy.command.confirm` | `TRUE` | Run the confirm command. **Must stay `TRUE`** — downstream plugins dispatch it *as the player*. |
 | `excellenteconomy.tax.exempt` | `FALSE` | Pay no transfer tax at all. |
 
-### Placeholders
+#### Placeholders
 
 Two placeholders, consumed by downstream plugins (e.g. MenuWallet). **These are a hard cross-plugin contract** — the names and the return format will stay backwards compatible. If a different format is ever needed, a *new* placeholder gets registered and these keep working.
 
@@ -133,7 +169,7 @@ Both guarantee: plain decimal string, never `null`, never empty, no colour codes
 
 The amount form splits its payload on the **last** underscore, because currency ids may legally contain underscores (`mystery_coins`) while an amount never does.
 
-### Verifying tax math without a server
+#### Verifying tax math without a server
 
 The tax math is isolated behind `TaxRates` and has no dependency on a running server, so it can be exercised directly:
 
@@ -166,9 +202,3 @@ OK - 99 checks passed.
 Covered: base rate, both tier systems, exempt permission, `null` player fallback, decimal vs whole-number currencies, both rounding modes, the `Min_Tax_Amount` floor, `Max_Rate` clamping under `ADD`, all four `Combination` modes, malformed payloads (unknown currency, non-numeric, negative and zero amounts, missing separator), the `ChangeBalanceEvent` invariants the money-movement code depends on, a drift guard asserting every `writeDefaults` value still matches `samples/tax.yml`, config hardening (negative numbers clamped, unknown enum values falling back, malformed tiers skipped), non-finite amounts (NaN and Infinity collapsing to a zero-amount breakdown rather than leaking a non-finite number downstream), and a structural guard on `messages_cn.yml` asserting every key resolves under the parent the code reads it from.
 
 `getRate` and `calculate` are the *only* places rates and amounts are computed — both `/confirm` and the placeholders route through them, which is what guarantees the number shown in a menu always matches the number actually deducted.
-
-## ❤️ Donate
-
-Everything here is created and maintained by a single person. If you enjoy my work or find my plugins useful, feel free to [Buy me a coffee](https://ko-fi.com/nightexpress) :)  
-
-Thank you!
